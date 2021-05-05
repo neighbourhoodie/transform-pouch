@@ -26,17 +26,23 @@ function isUntransformable(doc) {
 // api.filter provided for backwards compat with the old "filter-pouch"
 exports.transform = exports.filter = function transform(config) {
   var db = this;
-
+  console.log('*** *** transform start')
   var incoming = function (doc) {
+    console.log('*** *** incoming transform 1')
     if (!isUntransformable(doc) && config.incoming) {
+      console.log('*** *** incoming transform 2')
       return config.incoming(utils.clone(doc));
     }
+    console.log('*** *** incoming transform 3')
     return doc;
   };
   var outgoing = function (doc) {
+    console.log('*** *** outgoing transform 1')
     if (!isUntransformable(doc) && config.outgoing) {
+      console.log('*** *** outgoing transform 2')
       return config.outgoing(utils.clone(doc));
     }
+    console.log('*** *** outgoing transform 3')
     return doc;
   };
 
@@ -44,6 +50,7 @@ exports.transform = exports.filter = function transform(config) {
 
   if (db.type() === 'http') {
     handlers.query = function (orig) {
+    console.log('*** *** handlers.query start')
       var none = {};
       return orig().then(function (res) {
         return utils.Promise.all(res.rows.map(function (row) {
@@ -65,6 +72,8 @@ exports.transform = exports.filter = function transform(config) {
   }
 
   handlers.get = function (orig) {
+    console.log('*** *** handlers.get start')
+    
     return orig().then(function (res) {
       if (Array.isArray(res)) {
         var none = {};
@@ -90,6 +99,8 @@ exports.transform = exports.filter = function transform(config) {
   };
 
   handlers.bulkDocs = function (orig, args) {
+    console.log('*** *** handlers.bulkDocs start')
+
     for (var i = 0; i < args.docs.length; i++) {
       args.docs[i] = incoming(args.docs[i]);
     }
@@ -100,6 +111,8 @@ exports.transform = exports.filter = function transform(config) {
   };
 
   handlers.allDocs = function (orig) {
+    console.log('*** *** handlers.allDocs start')
+
     return orig().then(function (res) {
       var none = {};
       return utils.Promise.all(res.rows.map(function (row) {
@@ -120,6 +133,7 @@ exports.transform = exports.filter = function transform(config) {
   };
 
   handlers.bulkGet = function (orig) {
+    console.log('*** *** handlers.bulkGet start')
     return orig().then(function (res) {
       var none = {};
       return utils.Promise.all(res.results.map(function (result) {
@@ -144,6 +158,7 @@ exports.transform = exports.filter = function transform(config) {
   };
   
   handlers.changes = function (orig) {
+    console.log('*** *** handlers.changes start')
     function modifyChange(change) {
       if (change.doc) {
         return utils.Promise.resolve(outgoing(change.doc)).then(function (doc) {
@@ -196,6 +211,7 @@ exports.transform = exports.filter = function transform(config) {
     };
     return changes;
   };
+  console.log('*** *** handlers', Object.keys(handlers))
   wrappers.installWrapperMethods(db, handlers);
 };
 
