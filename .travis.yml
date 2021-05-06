@@ -4,7 +4,8 @@ services:
   - couchdb
 
 node_js:
-  - "5"
+  - 12
+  - 14
 sudo: false
 script: npm run $COMMAND
 before_script:
