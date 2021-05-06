@@ -51,7 +51,6 @@ if (process.env.TRAVIS &&
     process.env.TRAVIS_SECURE_ENV_VARS === 'false') {
   console.error('Not running test, cannot connect to saucelabs');
   process.exit(1);
-  return;
 }
 
 function testError(e) {
