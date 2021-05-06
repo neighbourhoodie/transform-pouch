@@ -50,7 +50,7 @@ if (process.env.TRAVIS &&
     client.browser !== 'phantomjs' &&
     process.env.TRAVIS_SECURE_ENV_VARS === 'false') {
   console.error('Not running test, cannot connect to saucelabs')
-  return process.exit(1)
+  process.exit(1)
 }
 
 function testError (e) {
