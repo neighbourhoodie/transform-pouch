@@ -21,7 +21,7 @@
     "url": "https://github.com/nolanlawson/transform-pouch/issues"
   },
   "scripts": {
-    "test-node": "TEST_DB=testdb,http://localhost:5984/testdb istanbul test ./node_modules/mocha/bin/_mocha test/test.js",
+    "test-node": "TEST_DB=testdb,http://localhost:5984/testdb nyc ./node_modules/mocha/bin/_mocha test/test.js",
     "test-browser": "./bin/test-browser.js",
     "lint": "standard --env mocha",
     "test": "standard --env mocha && ./bin/run-test.sh",
@@ -29,17 +29,18 @@
     "min": "uglifyjs dist/pouchdb.transform-pouch.js -mc > dist/pouchdb.transform-pouch.min.js",
     "dev": "browserify test/test.js > test/test-bundle.js && npm run dev-server",
     "dev-server": "./bin/dev-server.js",
-    "coverage": "npm test --coverage && istanbul check-coverage --lines 100 --function 100 --statements 100 --branches 100"
+    "coverage": "nyc npm test"
   },
   "dependencies": {
     "argsarray": "0.0.1",
     "es3ify": "0.2.2",
+    "immediate": "~3.0.5",
     "inherits": "2.0.1",
     "lie": "3.0.4",
+    "nyc": "^15.1.0",
     "pouchdb-extend": "0.1.2",
     "pouchdb-promise": "5.4.3",
-    "pouchdb-wrappers": "4.1.0",
-    "immediate": "~3.0.5"
+    "pouchdb-wrappers": "4.1.0"
   },
   "devDependencies": {
     "bluebird": "^1.0.7",
@@ -47,7 +48,6 @@
     "chai": "^3.5.0",
     "chai-as-promised": "^5.3.0",
     "http-server": "~0.5.5",
-    "istanbul": "^0.2.7",
     "mocha": "^2.4.5",
     "phantomjs-prebuilt": "^2.1.7",
     "pouchdb-adapter-http": "^5.4.4",
