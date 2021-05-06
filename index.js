@@ -110,6 +110,9 @@ exports.transform = exports.filter = function transform(config) {
     });
   };
 
+  /* Remote db replication works after adding the PUT handler. However, please
+  note this was removed in an earlier commit saying it caused the encryption to
+  run twice. https://github.com/pouchdb-community/transform-pouch/pull/23*/
   handlers.put = function (orig, args) {
     console.log('*** *** handlers.put start');
 
