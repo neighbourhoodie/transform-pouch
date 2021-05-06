@@ -110,6 +110,13 @@ exports.transform = exports.filter = function transform(config) {
     });
   };
 
+  handlers.put = function (orig, args) {
+    console.log('*** *** handlers.put start');
+
+    args.doc = incoming(args.doc);
+    return orig()
+  };
+
   handlers.allDocs = function (orig) {
     console.log('*** *** handlers.allDocs start');
 
