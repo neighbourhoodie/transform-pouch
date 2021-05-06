@@ -23,8 +23,8 @@
   "scripts": {
     "test-node": "TEST_DB=testdb,http://localhost:5984/testdb istanbul test ./node_modules/mocha/bin/_mocha test/test.js",
     "test-browser": "./bin/test-browser.js",
-    "jshint": "jshint -c .jshintrc *.js test/test.js",
-    "test": "npm run jshint && ./bin/run-test.sh",
+    "lint": "standard --env mocha",
+    "test": "standard --env mocha && ./bin/run-test.sh",
     "build": "mkdir -p dist && browserify -t es3ify index.js -o dist/pouchdb.transform-pouch.js && npm run min",
     "min": "uglifyjs dist/pouchdb.transform-pouch.js -mc > dist/pouchdb.transform-pouch.min.js",
     "dev": "browserify test/test.js > test/test-bundle.js && npm run dev-server",
@@ -48,7 +48,6 @@
     "chai-as-promised": "^5.3.0",
     "http-server": "~0.5.5",
     "istanbul": "^0.2.7",
-    "jshint": "~2.8.0",
     "mocha": "^2.4.5",
     "phantomjs-prebuilt": "^2.1.7",
     "pouchdb-adapter-http": "^5.4.4",
@@ -59,6 +58,7 @@
     "request": "^2.36.0",
     "sauce-connect-launcher": "^0.14.0",
     "selenium-standalone": "^5.1.0",
+    "standard": "^16.0.3",
     "uglify-js": "^2.4.13",
     "watchify": "^3.1.0",
     "wd": "^0.2.21"
@@ -67,5 +67,12 @@
     "dist",
     "index.js",
     "pouch-utils.js"
-  ]
+  ],
+  "standard": {
+    "globals": [
+      "emit",
+      "atob",
+      "btoa"
+    ]
+  }
 }
