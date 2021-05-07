@@ -133,7 +133,6 @@ exports.transform = exports.filter = function transform(config) {
   };
 
   handlers.bulkGet = function (orig) {
-    console.log('*** *** bulkGet')
     return orig().then(function (res) {
       var none = {};
       return utils.Promise.all(res.results.map(function (result) {
