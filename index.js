@@ -1,6 +1,5 @@
 'use strict'
 
-const Promise = require('lie')
 const utils = require('./pouch-utils')
 const wrappers = require('pouchdb-wrappers')
 const immediate = require('immediate')
@@ -107,7 +106,7 @@ exports.transform = exports.filter = function transform (config) {
     for (let i = 0; i < args.docs.length; i++) {
       args.docs[i] = incoming(args.docs[i])
     }
-    return Promise.all(args.docs).then(function (docs) {
+    return utils.Promise.all(args.docs).then(function (docs) {
       args.docs = docs
       return orig()
     })
@@ -134,6 +133,7 @@ exports.transform = exports.filter = function transform (config) {
   }
 
   handlers.bulkGet = function (orig) {
+    console.log('*** *** bulkGet')
     return orig().then(function (res) {
       const none = {}
       return utils.Promise.all(res.results.map(function (result) {
