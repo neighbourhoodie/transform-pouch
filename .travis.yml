@@ -9,6 +9,7 @@ node_js:
 sudo: false
 script: npm run $COMMAND
 before_script:
+  - curl -X PUT http://admin:travis@localhost:5984/testdb
   - "npm install add-cors-to-couchdb"
   - "./node_modules/.bin/add-cors-to-couchdb"
 
