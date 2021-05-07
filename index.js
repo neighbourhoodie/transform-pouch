@@ -47,8 +47,8 @@ exports.transform = exports.filter = function transform (config) {
     // So wrapping .put when pouchdb is using the http adapter will fix the remote replication.
     handlers.put = function (orig, args) {
       args.doc = incoming(args.doc)
-      return Promise.resolve(args.docs).then(function (doc) {
-        args.docs = doc
+      return Promise.resolve(args.doc).then(function (doc) {
+        args.doc = doc
         return orig()
       })
     }
