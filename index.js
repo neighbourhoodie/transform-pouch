@@ -1,9 +1,8 @@
 'use strict';
 
-var Promise = require('lie');
-var utils = require('./pouch-utils');
-var wrappers = require('pouchdb-wrappers');
-var immediate = require('immediate');
+const utils = require('./pouch-utils');
+const wrappers = require('pouchdb-wrappers');
+const immediate = require('immediate');
 
 function isntInternalKey(key) {
   return key[0] !== '_';
@@ -107,11 +106,11 @@ exports.transform = exports.filter = function transform(config) {
     for (var i = 0; i < args.docs.length; i++) {
       args.docs[i] = incoming(args.docs[i]);
     }
-    return Promise.all(args.docs).then(function (docs) {
+    return utils.Promise.all(args.docs).then(function (docs) {
       args.docs = docs;
       return orig();
-    });
-  };
+    })
+  }
 
   handlers.allDocs = function (orig) {
     return orig().then(function (res) {
@@ -134,6 +133,7 @@ exports.transform = exports.filter = function transform(config) {
   };
 
   handlers.bulkGet = function (orig) {
+    console.log('*** *** bulkGet')
     return orig().then(function (res) {
       var none = {};
       return utils.Promise.all(res.results.map(function (result) {
