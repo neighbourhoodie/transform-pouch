@@ -238,11 +238,9 @@ function tests (dbName, dbType) {
       })
       const doc = { _id: 'foo' }
       return db.put(doc).then(function (res) {
-        // should.not.exist(res)
-        expect(res.ok).to.not.be(true)
+        should.not.exist(res)
       }).catch(function (err) {
-        // should.exist(err)
-        expect(err).to.be.true // eslint-disable-line
+        should.exist(err)
       })
     })
 
