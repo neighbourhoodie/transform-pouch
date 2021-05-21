@@ -609,13 +609,16 @@ function tests (dbName, dbType) {
           return doc
         }
       })
-      const mapFun = {
-        map: function (doc) {
-          emit(doc._id)
+      const ddoc = {
+        _id: '_design/index',
+        views: {
+          index: {
+            map: function (doc) { emit(doc._id) }.toString()
         }
       }
-      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }] }).then(function () {
-        return db.query(mapFun, { include_docs: true }).then(function (res) {
+      }
+      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }, ddoc] }).then(function () {
+        return db.query('index', { include_docs: true }).then(function (res) {
           res.rows.should.have.length(2)
           res.rows[0].doc.foo.should.equal('lala_baz')
           res.rows[1].doc.foo.should.equal('toto_baz')
@@ -630,13 +633,16 @@ function tests (dbName, dbType) {
           return doc
         }
       })
-      const mapFun = {
-        map: function (doc) {
-          emit(doc._id)
+      const ddoc = {
+        _id: '_design/index',
+        views: {
+          index: {
+            map: function (doc) { emit(doc._id) }.toString()
         }
       }
-      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }] }).then(function () {
-        return db.query(mapFun, { include_docs: true }).then(function (res) {
+      }
+      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }, ddoc] }).then(function () {
+        return db.query('index', { include_docs: true }).then(function (res) {
           res.rows.should.have.length(2)
           res.rows[0].doc.foo.should.equal('lala_baz')
           res.rows[1].doc.foo.should.equal('toto_baz')
@@ -651,13 +657,16 @@ function tests (dbName, dbType) {
           return doc
         }
       })
-      const mapFun = {
-        map: function (doc) {
-          emit(doc._id)
+      const ddoc = {
+        _id: '_design/index',
+        views: {
+          index: {
+            map: function (doc) { emit(doc._id) }.toString()
         }
       }
-      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }] }).then(function () {
-        return db.query(mapFun).then(function (res) {
+      }
+      return db.bulkDocs({ docs: [{ _id: 'toto' }, { _id: 'lala' }, ddoc] }).then(function () {
+        return db.query('index').then(function (res) {
           res.rows.should.have.length(2)
           should.not.exist(res.rows[0].doc)
           should.not.exist(res.rows[1].doc)
