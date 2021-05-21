@@ -1,6 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (process){(function (){
-'use strict'
+'use strict';
 
 const Promise = require('lie')
 const utils = require('./pouch-utils')
@@ -152,6 +152,30 @@ exports.transform = exports.filter = function transform (config) {
     })
   }
 
+  handlers.bulkGet = function (orig) {
+    return orig().then(function (res) {
+      var none = {};
+      return utils.Promise.all(res.results.map(function (result) {
+        if (result.id && result.docs && Array.isArray(result.docs)) {
+          return {
+            docs: result.docs.map(function(doc) {
+              if (doc.ok) {
+                return {ok: outgoing(doc.ok)};
+              } else {
+                return doc;
+              }
+            }),
+            id: result.id
+          };
+        } else {
+          return none;
+        }
+      })).then(function (results) {
+        return {results: results};
+      });
+    });
+  };
+  
   handlers.changes = function (orig) {
     function modifyChange (change) {
       if (change.doc) {
@@ -163,14 +187,14 @@ exports.transform = exports.filter = function transform (config) {
       return utils.Promise.resolve(change)
     }
 
-    function modifyChanges (res) {
+    function modifyChanges(res) {
       if (res.results) {
         return utils.Promise.all(res.results.map(modifyChange)).then(function (results) {
-          res.results = results
-          return res
-        })
+          res.results = results;
+          return res;
+        });
       }
-      return utils.Promise.resolve(res)
+      return utils.Promise.resolve(res);
     }
 
     const changes = orig()
@@ -200,13 +224,13 @@ exports.transform = exports.filter = function transform (config) {
     const origThen = changes.then
     changes.then = function (resolve, reject) {
       return origThen.apply(changes, [function (res) {
-        return modifyChanges(res).then(resolve, reject)
-      }, reject])
-    }
-    return changes
-  }
-  wrappers.installWrapperMethods(db, handlers)
-}
+        return modifyChanges(res).then(resolve, reject);
+      }, reject]);
+    };
+    return changes;
+  };
+  wrappers.installWrapperMethods(db, handlers);
+};
 
 /* istanbul ignore next */
 if (typeof window !== 'undefined' && window.PouchDB) {
@@ -1502,7 +1526,7 @@ module.exports = function nodify(promise, callback) {
 
 },{}],10:[function(require,module,exports){
 (function (process){(function (){
-'use strict'
+'use strict';
 
 const Promise = require('pouchdb-promise')
 /* istanbul ignore next */
