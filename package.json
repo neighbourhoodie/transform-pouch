@@ -38,7 +38,7 @@
     "nyc": "^15.1.0",
     "pouchdb-extend": "0.1.2",
     "pouchdb-promise": "5.4.3",
-    "pouchdb-wrappers": "4.1.0"
+    "pouchdb-wrappers": "https://github.com/neighbourhoodie/pouchdb-wrappers.git#mergemaster"
   },
   "devDependencies": {
     "bluebird": "^1.0.7",
