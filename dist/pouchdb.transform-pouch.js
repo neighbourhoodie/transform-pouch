@@ -1,172 +1,230 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-(function (process){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+(function (process){(function (){
 'use strict';
 
-var Promise = require('lie');
-var utils = require('./pouch-utils');
-var wrappers = require('pouchdb-wrappers');
-var immediate = require('immediate');
+const Promise = require('lie')
+const utils = require('./pouch-utils')
+const wrappers = require('pouchdb-wrappers')
+const immediate = require('immediate')
 
-function isntInternalKey(key) {
-  return key[0] !== '_';
+function isntInternalKey (key) {
+  return key[0] !== '_'
 }
 
-function isUntransformable(doc) {
-  var isLocal = typeof doc._id === 'string' && utils.isLocalId(doc._id);
+function isUntransformable (doc) {
+  const isLocal = typeof doc._id === 'string' && utils.isLocalId(doc._id)
 
   if (isLocal) {
-    return true;
+    return true
   }
 
   if (doc._deleted) {
-    return Object.keys(doc).filter(isntInternalKey).length === 0;
+    return Object.keys(doc).filter(isntInternalKey).length === 0
   }
 
-  return false;
+  return false
 }
 
 // api.filter provided for backwards compat with the old "filter-pouch"
-exports.transform = exports.filter = function transform(config) {
-  var db = this;
+exports.transform = exports.filter = function transform (config) {
+  const db = this
 
-  var incoming = function (doc) {
+  const incoming = function (doc) {
     if (!isUntransformable(doc) && config.incoming) {
-      return config.incoming(utils.clone(doc));
+      return config.incoming(utils.clone(doc))
     }
-    return doc;
-  };
-  var outgoing = function (doc) {
+    return doc
+  }
+  const outgoing = function (doc) {
     if (!isUntransformable(doc) && config.outgoing) {
-      return config.outgoing(utils.clone(doc));
+      return config.outgoing(utils.clone(doc))
     }
-    return doc;
-  };
+    return doc
+  }
 
-  var handlers = {};
+  const handlers = {}
 
   if (db.type() === 'http') {
+    // Basically puts get routed through ._bulkDocs unless the adapter has a ._put method defined, which the adapter does.
+    // So wrapping .put when pouchdb is using the http adapter will fix the remote replication.
+    handlers.put = function (orig, args) {
+      args.doc = incoming(args.doc)
+      return orig()
+    }
+
     handlers.query = function (orig) {
-      var none = {};
+      const none = {}
       return orig().then(function (res) {
         return utils.Promise.all(res.rows.map(function (row) {
           if (row.doc) {
-            return outgoing(row.doc);
+            return outgoing(row.doc)
           }
-          return none;
+          return none
         })).then(function (resp) {
           resp.forEach(function (doc, i) {
             if (doc === none) {
-              return;
+              return
             }
-            res.rows[i].doc = doc;
-          });
-          return res;
-        });
-      });
-    };
+            res.rows[i].doc = doc
+          })
+          return res
+        })
+      })
+    }
   }
 
   handlers.get = function (orig) {
     return orig().then(function (res) {
       if (Array.isArray(res)) {
-        var none = {};
+        const none = {}
         // open_revs style, it's a list of docs
         return utils.Promise.all(res.map(function (row) {
           if (row.ok) {
-            return outgoing(row.ok);
+            return outgoing(row.ok)
           }
-          return none;
+          return none
         })).then(function (resp) {
           resp.forEach(function (doc, i) {
             if (doc === none) {
-              return;
+              return
             }
-            res[i].ok = doc;
-          });
-          return res;
-        });
+            res[i].ok = doc
+          })
+          return res
+        })
       } else {
-        return outgoing(res);
+        return outgoing(res)
       }
-    });
-  };
+    })
+  }
 
   handlers.bulkDocs = function (orig, args) {
-    for (var i = 0; i < args.docs.length; i++) {
-      args.docs[i] = incoming(args.docs[i]);
+    for (let i = 0; i < args.docs.length; i++) {
+      args.docs[i] = incoming(args.docs[i])
     }
     return Promise.all(args.docs).then(function (docs) {
-      args.docs = docs;
-      return orig();
-    });
-  };
+      args.docs = docs
+      return orig()
+    })
+  }
 
   handlers.allDocs = function (orig) {
     return orig().then(function (res) {
-      var none = {};
+      const none = {}
       return utils.Promise.all(res.rows.map(function (row) {
         if (row.doc) {
-          return outgoing(row.doc);
+          return outgoing(row.doc)
         }
-        return none;
+        return none
       })).then(function (resp) {
         resp.forEach(function (doc, i) {
           if (doc === none) {
-            return;
+            return
           }
-          res.rows[i].doc = doc;
-        });
-        return res;
+          res.rows[i].doc = doc
+        })
+        return res
+      })
+    })
+  }
+
+  handlers.bulkGet = function (orig) {
+    return orig().then(function (res) {
+      const none = {}
+      return utils.Promise.all(res.results.map(function (result) {
+        if (result.id && result.docs && Array.isArray(result.docs)) {
+          return {
+            docs: result.docs.map(function (doc) {
+              if (doc.ok) {
+                return { ok: outgoing(doc.ok) }
+              } else {
+                return doc
+              }
+            }),
+            id: result.id
+          }
+        } else {
+          return none
+        }
+      })).then(function (results) {
+        return { results: results }
+      })
+    })
+  }
+
+  handlers.bulkGet = function (orig) {
+    return orig().then(function (res) {
+      var none = {};
+      return utils.Promise.all(res.results.map(function (result) {
+        if (result.id && result.docs && Array.isArray(result.docs)) {
+          return {
+            docs: result.docs.map(function(doc) {
+              if (doc.ok) {
+                return {ok: outgoing(doc.ok)};
+              } else {
+                return doc;
+              }
+            }),
+            id: result.id
+          };
+        } else {
+          return none;
+        }
+      })).then(function (results) {
+        return {results: results};
       });
     });
   };
-
+  
   handlers.changes = function (orig) {
-    function modifyChange(change) {
+    function modifyChange (change) {
       if (change.doc) {
         return utils.Promise.resolve(outgoing(change.doc)).then(function (doc) {
-          change.doc = doc;
-          return change;
-        });
+          change.doc = doc
+          return change
+        })
       }
-      return utils.Promise.resolve(change);
+      return utils.Promise.resolve(change)
     }
 
     function modifyChanges(res) {
-      return utils.Promise.all(res.results.map(modifyChange)).then(function (results) {
-        res.results = results;
-        return res;
-      });
+      if (res.results) {
+        return utils.Promise.all(res.results.map(modifyChange)).then(function (results) {
+          res.results = results;
+          return res;
+        });
+      }
+      return utils.Promise.resolve(res);
     }
 
-    var changes = orig();
+    const changes = orig()
     // override some events
-    var origOn = changes.on;
+    const origOn = changes.on
     changes.on = function (event, listener) {
       if (event === 'change') {
         return origOn.apply(changes, [event, function (change) {
           modifyChange(change).then(function (resp) {
             immediate(function () {
-              listener(resp);
-            });
-          });
-        }]);
+              listener(resp)
+            })
+          })
+        }])
       } else if (event === 'complete') {
         return origOn.apply(changes, [event, function (res) {
           modifyChanges(res).then(function (resp) {
             process.nextTick(function () {
-              listener(resp);
-            });
-          });
-        }]);
+              listener(resp)
+            })
+          })
+        }])
       }
-      return origOn.apply(changes, [event, listener]);
-    };
+      return origOn.apply(changes, [event, listener])
+    }
 
-    var origThen = changes.then;
+    const origThen = changes.then
     changes.then = function (resolve, reject) {
       return origThen.apply(changes, [function (res) {
-        modifyChanges(res).then(resolve, reject);
+        return modifyChanges(res).then(resolve, reject);
       }, reject]);
     };
     return changes;
@@ -176,12 +234,12 @@ exports.transform = exports.filter = function transform(config) {
 
 /* istanbul ignore next */
 if (typeof window !== 'undefined' && window.PouchDB) {
-  window.PouchDB.plugin(exports);
+  window.PouchDB.plugin(exports)
 }
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"./pouch-utils":10,"_process":8,"immediate":2,"lie":4,"pouchdb-wrappers":7}],2:[function(require,module,exports){
-(function (global){
+(function (global){(function (){
 'use strict';
 var Mutation = global.MutationObserver || global.WebKitMutationObserver;
 
@@ -252,7 +310,7 @@ function immediate(task) {
   }
 }
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
@@ -813,7 +871,7 @@ exports.createWrapperMethod = function (name, original, handler, db) {
 function createWrapper(name, original, handler, theWrapperBuilders, thisVal) {
   //thisVal is optional
   var buildWrapper = theWrapperBuilders[name];
-  if (typeof createWrapper === "undefined") {
+  if (typeof buildWrapper === "undefined") {
     throw new Error("No known wrapper for method name: " + name); //coverage: ignore
   }
   var handlers = [handler];
@@ -833,15 +891,14 @@ wrapperBuilders.destroy = function (db, destroy, handlers) {
 };
 
 wrapperBuilders.put = function (db, put, handlers) {
-  return function (doc, docId, docRev, options, callback) {
+  return function (/*doc, docId, docRev, options, callback*/) {
     var args = {};
     args.base = db || this;
-    args.db = db || this; //backwards compatibility
     var argsList = Array.prototype.slice.call(arguments);
     //parsing code borrowed from PouchDB (adapted).
     args.doc = argsList.shift();
     var id = '_id' in args.doc;
-    while (true) {
+    do {
       var temp = argsList.shift();
       var temptype = typeof temp;
       if (temptype === "string" && !id) {
@@ -854,10 +911,7 @@ wrapperBuilders.put = function (db, put, handlers) {
       } else if (temptype === "function") {
         args.callback = temp;
       }
-      if (!argsList.length) {
-        break;
-      }
-    }
+    } while (argsList.length);
     args.options = args.options || {};
     return callHandlers(handlers, args, function () {
       return put.call(this, args.doc, args.options);
@@ -876,7 +930,7 @@ wrapperBuilders.post = function (db, post, handlers) {
 };
 
 wrapperBuilders.get = function (db, get, handlers) {
-  return function(docId, options, callback) {
+  return function (docId, options, callback) {
     var args = parseBaseArgs(db, this, options, callback);
     args.docId = docId;
     return callHandlers(handlers, args, function () {
@@ -913,7 +967,7 @@ wrapperBuilders.bulkDocs = function (db, bulkDocs, handlers) {
   return function (docs, options, callback) {
     var args = parseBaseArgs(db, this, options, callback);
     //support the deprecated signature.
-    if ('new_edits' in docs) {
+    if (typeof(docs) === 'object' && 'new_edits' in docs) {
       args.options.new_edits = docs.new_edits;
     }
     args.docs = docs.docs || docs;
@@ -929,6 +983,7 @@ wrapperBuilders.allDocs = function (db, allDocs, handlers) {
     return callHandlers(handlers, args, makeCallWithOptions(allDocs, args));
   };
 };
+wrapperBuilders.bulkGet = wrapperBuilders.allDocs;
 
 wrapperBuilders.changes = function (db, changes, handlers) {
   return function (options, callback) {
@@ -1025,6 +1080,29 @@ wrapperBuilders.viewCleanup = function (db, viewCleanup, handlers) {
   };
 };
 
+wrapperBuilders.createIndex = function (db, createIndex, handlers) {
+  return function (index, options, callback) {
+    var args = parseBaseArgs(db, this, options, callback);
+    args.index = index;
+    return callHandlers(handlers, args, function () {
+      return createIndex.call(this, args.index);
+    });
+  };
+};
+wrapperBuilders.deleteIndex = wrapperBuilders.createIndex;
+
+
+wrapperBuilders.find = function (db, find, handlers) {
+  return function (request, options, callback) {
+    var args = parseBaseArgs(db, this, options, callback);
+    args.request = request;
+    return callHandlers(handlers, args, function () {
+      return find.call(this, args.request);
+    });
+  };
+};
+wrapperBuilders.explain = wrapperBuilders.find;
+
 wrapperBuilders.info = function (db, info, handlers) {
   return function (options, callback) {
     //see note on the options argument at putAttachment.
@@ -1032,6 +1110,7 @@ wrapperBuilders.info = function (db, info, handlers) {
     return callHandlers(handlers, args, makeCall(info));
   };
 };
+wrapperBuilders.getIndexes = wrapperBuilders.info;
 
 wrapperBuilders.compact = function (db, compact, handlers) {
   return function (options, callback) {
@@ -1155,7 +1234,6 @@ function parseBaseArgs(thisVal1, thisVal2, options, callback) {
   }
   return {
     base: thisVal1 || thisVal2,
-    db: thisVal1 || thisVal2, //backwards compatibility
     options: options || {},
     callback: callback
   };
@@ -1233,7 +1311,6 @@ function uninstallWrappers(base, handlers) {
 
 },{"promise-nodify":9}],8:[function(require,module,exports){
 // shim for using process in browser
-
 var process = module.exports = {};
 
 // cached from whatever global is present so that test runners that stub it
@@ -1244,22 +1321,84 @@ var process = module.exports = {};
 var cachedSetTimeout;
 var cachedClearTimeout;
 
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
 (function () {
-  try {
-    cachedSetTimeout = setTimeout;
-  } catch (e) {
-    cachedSetTimeout = function () {
-      throw new Error('setTimeout is not defined');
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
     }
-  }
-  try {
-    cachedClearTimeout = clearTimeout;
-  } catch (e) {
-    cachedClearTimeout = function () {
-      throw new Error('clearTimeout is not defined');
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
     }
-  }
 } ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
 var queue = [];
 var draining = false;
 var currentQueue;
@@ -1284,7 +1423,7 @@ function drainQueue() {
     if (draining) {
         return;
     }
-    var timeout = cachedSetTimeout(cleanUpNextTick);
+    var timeout = runTimeout(cleanUpNextTick);
     draining = true;
 
     var len = queue.length;
@@ -1301,7 +1440,7 @@ function drainQueue() {
     }
     currentQueue = null;
     draining = false;
-    cachedClearTimeout(timeout);
+    runClearTimeout(timeout);
 }
 
 process.nextTick = function (fun) {
@@ -1313,7 +1452,7 @@ process.nextTick = function (fun) {
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining) {
-        cachedSetTimeout(drainQueue, 0);
+        runTimeout(drainQueue);
     }
 };
 
@@ -1341,6 +1480,10 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
@@ -1382,92 +1525,92 @@ module.exports = function nodify(promise, callback) {
 };
 
 },{}],10:[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 'use strict';
 
-var Promise = require('pouchdb-promise');
+const Promise = require('pouchdb-promise')
 /* istanbul ignore next */
 exports.once = function (fun) {
-  var called = false;
+  let called = false
   return exports.getArguments(function (args) {
     if (called) {
-      console.trace();
-      throw new Error('once called  more than once');
+      console.trace()
+      throw new Error('once called  more than once')
     } else {
-      called = true;
-      fun.apply(this, args);
+      called = true
+      fun.apply(this, args)
     }
-  });
-};
+  })
+}
 /* istanbul ignore next */
 exports.getArguments = function (fun) {
   return function () {
-    var len = arguments.length;
-    var args = new Array(len);
-    var i = -1;
+    const len = arguments.length
+    const args = new Array(len)
+    let i = -1
     while (++i < len) {
-      args[i] = arguments[i];
+      args[i] = arguments[i]
     }
-    return fun.call(this, args);
-  };
-};
+    return fun.call(this, args)
+  }
+}
 /* istanbul ignore next */
 exports.toPromise = function (func) {
-  //create the function we will be returning
+  // create the function we will be returning
   return exports.getArguments(function (args) {
-    var self = this;
-    var tempCB = (typeof args[args.length - 1] === 'function') ? args.pop() : false;
+    const self = this
+    const tempCB = (typeof args[args.length - 1] === 'function') ? args.pop() : false
     // if the last argument is a function, assume its a callback
-    var usedCB;
+    let usedCB
     if (tempCB) {
       // if it was a callback, create a new callback which calls it,
       // but do so async so we don't trap any errors
       usedCB = function (err, resp) {
         process.nextTick(function () {
-          tempCB(err, resp);
-        });
-      };
+          tempCB(err, resp)
+        })
+      }
     }
-    var promise = new Promise(function (fulfill, reject) {
+    const promise = new Promise(function (resolve, reject) {
       try {
-        var callback = exports.once(function (err, mesg) {
+        const callback = exports.once(function (err, mesg) {
           if (err) {
-            reject(err);
+            reject(err)
           } else {
-            fulfill(mesg);
+            resolve(mesg)
           }
-        });
+        })
         // create a callback for this invocation
         // apply the function in the orig context
-        args.push(callback);
-        func.apply(self, args);
+        args.push(callback)
+        func.apply(self, args)
       } catch (e) {
-        reject(e);
+        reject(e)
       }
-    });
+    })
     // if there is a callback, call it back
     if (usedCB) {
       promise.then(function (result) {
-        usedCB(null, result);
-      }, usedCB);
+        usedCB(null, result)
+      }, usedCB)
     }
     promise.cancel = function () {
-      return this;
-    };
-    return promise;
-  });
-};
+      return this
+    }
+    return promise
+  })
+}
 
-exports.inherits = require('inherits');
-exports.Promise = Promise;
-exports.extend = require('pouchdb-extend');
+exports.inherits = require('inherits')
+exports.Promise = Promise
+exports.extend = require('pouchdb-extend')
 exports.clone = function (obj) {
-  return exports.extend(true, {}, obj);
-};
+  return exports.extend(true, {}, obj)
+}
 
 exports.isLocalId = function (id) {
-  return (/^_local/).test(id);
-};
+  return (/^_local/).test(id)
+}
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"_process":8,"inherits":3,"pouchdb-extend":5,"pouchdb-promise":6}]},{},[1]);
