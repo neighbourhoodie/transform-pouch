@@ -795,18 +795,21 @@ function tests (dbName, dbType) {
     it('test encryption/decryption with bulkdocs/query', function () {
       transform(db)
 
-      const mapFun = {
-        map: function (doc) {
-          emit(doc._id)
+      const ddoc = {
+        _id: '_design/index',
+        views: {
+          index: {
+            map: function (doc) { emit(doc._id) }.toString()
+          }
         }
       }
 
-      return db.bulkDocs([{ _id: 'doc', secret: 'my super secret text!' }]).then(function () {
-        return db.query(mapFun, { keys: ['doc'], include_docs: true })
+      return db.bulkDocs({ docs: [{ _id: 'doc', secret: 'my super secret text!' }, ddoc] }).then(function (response) {
+        return db.query('index', { keys: ['doc'], include_docs: true })
       }).then(function (res) {
         res.rows.should.have.length(1)
         res.rows[0].doc.secret.should.equal('my super secret text!')
-        return new Pouch(dbName).query(mapFun, { keys: ['doc'], include_docs: true })
+        return new Pouch(dbName).query('index', { keys: ['doc'], include_docs: true })
       }).then(function (res) {
         res.rows.should.have.length(1)
         res.rows[0].doc.secret.should.equal(encrypt('my super secret text!'))
