@@ -1,8 +1,8 @@
 'use strict';
 
-const utils = require('./pouch-utils');
-const wrappers = require('pouchdb-wrappers');
-const immediate = require('immediate');
+var utils = require('./pouch-utils');
+var wrappers = require('pouchdb-wrappers');
+var immediate = require('immediate');
 
 function isntInternalKey(key) {
   return key[0] !== '_';
@@ -42,7 +42,8 @@ exports.transform = exports.filter = function transform(config) {
   var handlers = {};
 
   if (db.type() === 'http') {
-    // Basically puts get routed through ._bulkDocs unless the adapter has a ._put method defined, which the adapter does.
+    // Basically puts get routed through ._bulkDocs unless the adapter has a ._put method defined,
+    // which the adapter does.
     // So wrapping .put when pouchdb is using the http adapter will fix the remote replication.
     handlers.put = function (orig, args) {
       try {
@@ -50,11 +51,11 @@ exports.transform = exports.filter = function transform(config) {
         return utils.Promise.resolve(args.doc).then(function (doc) {
           args.doc = doc;
           return orig();
-        })
+        });
       } catch (error) {
         return utils.Promise.reject(error);
       }
-    }
+    };
 
     handlers.query = function (orig) {
       var none = {};
@@ -109,8 +110,8 @@ exports.transform = exports.filter = function transform(config) {
     return utils.Promise.all(args.docs).then(function (docs) {
       args.docs = docs;
       return orig();
-    })
-  }
+    });
+  };
 
   handlers.allDocs = function (orig) {
     return orig().then(function (res) {
